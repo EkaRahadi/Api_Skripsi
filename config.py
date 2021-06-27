@@ -1,4 +1,4 @@
-SECRET_KEY = '@Passw0rd123'
+SECRET_KEY = '@Passw0rd12345'
 
 MONGO_ADDR = 'mongodb://localhost:27017'
 
