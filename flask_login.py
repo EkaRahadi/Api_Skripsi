@@ -3,13 +3,15 @@ import uuid
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 import re
-
+from flask_cors import CORS
 import pymongo
 from datetime import datetime, timedelta
 from functools import wraps
 import config
 
 application = Flask(__name__)
+CORS(application)
+
 conn = pymongo.MongoClient(config.MONGO_ADDR)
 db = conn[config.MONGO_AUTH]
 
