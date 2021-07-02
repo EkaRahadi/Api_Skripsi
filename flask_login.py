@@ -66,15 +66,45 @@ def login():
         if check_password_hash(user['password'], auth['password']):
             token = jwt.encode({
                 'user_id': user['user_id'],
-                'exp': datetime.utcnow() + timedelta(minutes=59)
+                'exp': datetime.utcnow() + timedelta(minutes=30)
             }, config.SECRET_KEY, algorithm="HS256")
+            refreshToken = jwt.encode({
+                'user_id': user['user_id'],
+                'exp': datetime.utcnow() + timedelta(hours=23)
+            }, config.SECRET_KEY, algorithm="HS256")
+
             response["message"] = "token generated"
             response["token"] = token
+            response["refreshToken"] = refreshToken
             response["data"] = user
             response["success"] = True
             return response, 200
         response["message"] = 'Invalid emailid or password'
         return response, 403
+    except Exception as ex:
+        print(str(ex))
+        return response, 422
+
+
+@application.route('/refreshToken', methods=['POST'])
+@token_required
+def refreshToken(current_user):
+    response = {
+        "success": False,
+        "message": "Invalid parameters",
+        "token": ""
+    }
+
+    try:
+        token = jwt.encode({'user_id': current_user['user_id'],
+                            'exp': datetime.utcnow() + timedelta(minutes=1)
+                            }, config.SECRET_KEY, algorithm="HS256")
+
+        response["message"] = "token generated"
+        response["token"] = token
+        response["success"] = True
+
+        return response, 200
     except Exception as ex:
         print(str(ex))
         return response, 422
