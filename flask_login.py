@@ -213,19 +213,28 @@ def update_user(current_user, user_id):
     try:
         data = request.form
         name, email = data.get('name'), data.get('email')
-        password = data.get('password')
 
-        if name == None or email == None or password == None:
+        if name == None or email == None:
             return response, 202
+
+        payload = {
+            'user_name': name,
+            'email': email,
+        }
+
+        password = data.get('password')
+        if password != None:
+            payload['password'] = generate_password_hash(password)
+            if check_password(password) == False:
+                response["message"] = "Password requirement not fullfilled"
+                return response, 202
+
         if check_email(email) == False:
             response["message"] = "Invalid email id"
             return response, 202
-        if check_password(password) == False:
-            response["message"] = "Password requirement not fullfilled"
-            return response, 202
 
-        result = db['users'].update_one({'user_id': user_id}, {'$set': {'user_name': name,
-                                                               'email': email, 'password': generate_password_hash(password)}})
+        result = db['users'].update_one(
+            {'user_id': user_id}, {'$set': payload})
         if result.modified_count > 0:
             response["success"] = True
             response["message"] = 'User Updated !'
