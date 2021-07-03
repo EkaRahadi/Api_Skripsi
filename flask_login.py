@@ -31,6 +31,7 @@ def token_required(f):
             if not current_user:
                 return 'Unauthorized Access!', 401
         except Exception as e:
+            print(e)
             return 'Unauthorized Access!', 401
         return f(current_user, *args, **kwargs)
 
