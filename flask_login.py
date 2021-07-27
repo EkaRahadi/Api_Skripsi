@@ -8,6 +8,8 @@ import pymongo
 from datetime import datetime, timedelta
 from functools import wraps
 import config
+from bson.objectid import ObjectId
+from pymongo import ReturnDocument
 
 application = Flask(__name__)
 CORS(application)
@@ -157,8 +159,6 @@ def signup():
         return response, 422
 
 # ============================================USER API=======================================
-
-
 @application.route('/users', methods=['POST'])
 @token_required
 def create_user(current_user):
@@ -332,6 +332,227 @@ def get_user(current_user, user_id):
         print(str(ex))
         return response, 500
 # ============================================END USER API===================================
+# ============================================START PARAMETER AP==============================
+@application.route('/parameters', methods=['POST'])
+@token_required
+def insert_param(current_user):
+    response = {
+        "success": False,
+        "message": "Invalid parameters"
+    }
+    if not current_user['admin']:
+        response["success"] = False
+        response["message"] = 'You are not allowed to insert !'
+        return response, 403
+
+    try:
+        data = request.form
+        param_a, param_b, param_c, param_d= data.get('param_a'), data.get('param_b'), data.get('param_c'), data.get('param_d')
+
+        if param_a == None or param_b == None or param_c == None or param_d == None:
+            return response, 400
+
+        param = db['cocomo_param'].find_one({'param_a': float(param_a), 'param_b': float(param_b), 'param_c': float(param_c), 'param_d': float(param_d)})
+        if not param:
+            db['cocomo_param'].insert_one({'param_a': float(param_a), 'param_b': float(param_b), 'param_c': float(param_c), 'param_d': float(param_d), 'default': False})
+            response["success"] = True
+            response["message"] = 'New parameter inserted !'
+            return response, 200
+        else:
+            response["message"] = 'Parameter already exists.'
+            return response, 202
+    except Exception as ex:
+        print(str(ex))
+        return response, 422
+
+
+@application.route('/parameters/<parameter_id>', methods=['PUT'])
+@token_required
+def update_parameter(current_user, parameter_id):
+    response = {
+        "success": False,
+        "message": "Invalid parameters"
+    }
+
+    if not current_user['admin']:
+        response["success"] = False
+        response["message"] = 'You are not allowed to update!'
+        return response, 403
+
+    try:
+        data = request.form
+        param_a, param_b, param_c, param_d= data.get('param_a'), data.get('param_b'), data.get('param_c'), data.get('param_d')
+        default = data.get('default')
+
+        if param_a == None or param_b == None or param_c == None or param_d == None or default == None:
+            return response, 202
+
+        payload = {
+            'param_a': float(param_a),
+            'param_b': float(param_b),
+            'param_c': float(param_c),
+            'param_d': float(param_d),
+            'default': default
+        }
+
+
+        result = db['cocomo_param'].update_one(
+            {'_id': ObjectId(parameter_id)}, {'$set': payload})
+        if result.modified_count > 0:
+            response["success"] = True
+            response["message"] = 'Parameter Updated !'
+            return response, 200
+        else:
+            response["success"] = False
+            response["message"] = 'Parameter Failed Updated !'
+            return response, 500
+    except Exception as ex:
+        print(str(ex))
+        return response, 422
+
+
+@application.route('/parameters/<parameter_id>', methods=['DELETE'])
+@token_required
+def delete_parameter(current_user, parameter_id):
+    response = {
+        "success": False,
+        "message": "Invalid parameters"
+    }
+    if not current_user['admin']:
+        response["success"] = False
+        response["message"] = 'You are not allowed to delete!'
+        return response, 403
+
+    try:
+        result = db['cocomo_param'].delete_one({'_id': ObjectId(parameter_id)})
+        if result.deleted_count > 0:
+            response["success"] = True
+            response["message"] = 'Parameter Deleted !'
+            return response, 200
+        else:
+            response["success"] = False
+            response["message"] = 'Parameter Failed Deleted !'
+            return response, 500
+    except Exception as ex:
+        print(str(ex))
+        return response, 422
+
+
+@application.route('/parameters', methods=['GET'])
+@token_required
+def get_all_parameter(current_user):
+    response = {
+        "success": False,
+        "message": "Invalid parameters"
+    }
+    if not current_user['admin']:
+        response["success"] = False
+        response["message"] = 'You are not allowed to Get All User!'
+        return response, 403
+
+    try:
+        results = []
+        parameters = db['cocomo_param'].find({})
+
+        for param in parameters:
+            param['_id'] = str(param['_id'])
+            results.append(param)
+
+        response["success"] = True
+        response["message"] = 'Get All Parameter'
+        response["data"] = results
+        return response, 200
+    except Exception as ex:
+        print(str(ex))
+        return response, 500
+
+
+@application.route('/parameters/<parameter_id>', methods=['GET'])
+@token_required
+def get_parameter(current_user, parameter_id):
+    response = {
+        "success": False,
+        "message": "Invalid parameters"
+    }
+    if not current_user['admin']:
+        response["success"] = False
+        response["message"] = 'You are not allowed to Get Parameter!'
+        return response, 403
+
+    try:
+        results = []
+        parameters = db['cocomo_param'].find({'_id': ObjectId(parameter_id)})
+
+        for param in parameters:
+            param['_id'] = str(param['_id'])
+            results.append(param)
+
+        response["success"] = True
+        response["message"] = 'Get Parameter'
+        response["data"] = results
+        return response, 200
+    except Exception as ex:
+        print(str(ex))
+        return response, 500
+
+@application.route('/parameters/default/<parameter_id>', methods=['PUT'])
+@token_required
+def set_default(current_user, parameter_id):
+    response = {
+        "success": False,
+        "message": "Invalid parameters"
+    }
+    if not current_user['admin']:
+        response["success"] = False
+        response["message"] = 'You are not allowed to Set Default!'
+        return response, 403
+
+    try:
+        results = []
+        currentParam = db['cocomo_param'].find_one_and_update({'default': True }, {'$set': {'default': False}})
+        parameters = db['cocomo_param'].find_one_and_update({'_id': ObjectId(parameter_id)}, {'$set': { 'default' : True}}, return_document=ReturnDocument.AFTER)
+
+        parameters['_id'] = str(parameters['_id'])
+
+        response["success"] = True
+        response["message"] = 'Set Default Parameter'
+        response["data"] = parameters
+        return response, 200
+    except Exception as ex:
+        print(str(ex))
+        return response, 500
+
+# ============================================END PARAMETER AP==============================
+@application.route('/estimation', methods=['POST'])
+def estimation():
+    response = {
+        "success": False,
+        "message": "Invalid parameters"
+    }
+    data = request.form
+    loc, em, umr = data.get('loc'), data.get('em'), data.get('umr')
+
+    if loc == None or em == None or umr == None:
+        return response, 400
+    
+    const = db['cocomo_param'].find_one({'default': True})
+    if not const:
+        response["message"] = "Error no parameter cocomo found !"  
+        return response, 500
+    constant = [const["param_a"], const["param_b"], const["param_c"], const["param_d"]]
+
+    monthly_cost, total_cost, Tdev, num_of_staff = hitungBiaya(constant, float(loc), float(em), int(umr))
+
+    result = {
+        "monthly_cost": monthly_cost,
+        "total_cost": total_cost,
+        "TDEV": Tdev,
+        "num_of_staff": num_of_staff,
+    }
+    response["success"] = True
+    response["message"] = 'Estimation Success'
+    response["data"] = result
+    return response, 200
 
 # Utils
 
@@ -349,6 +570,20 @@ def check_password(password):
         return True
     else:
         return False
+
+def hitungBiaya(constant, LOC, EM, UMR):
+    a = constant[0]
+    b = constant[1]
+    c = constant[2]
+    d = constant[3]
+    
+    PM = a * (LOC**b) * EM
+    TDEV = round(c * (PM**d))
+    num_of_staff = round((PM / TDEV))
+    monthly_cost = num_of_staff * UMR
+    total_cost = monthly_cost * TDEV
+    
+    return monthly_cost, total_cost, TDEV, num_of_staff
 
 
 if __name__ == "__main__":
