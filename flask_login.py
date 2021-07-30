@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+import json
 import uuid
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
@@ -10,6 +11,8 @@ from functools import wraps
 import config
 from bson.objectid import ObjectId
 from pymongo import ReturnDocument
+import numpy as np
+from algorithm import algoKelelawar, fpaAlgorithm, baFpa
 
 application = Flask(__name__)
 CORS(application)
@@ -523,6 +526,39 @@ def set_default(current_user, parameter_id):
         return response, 500
 
 # ============================================END PARAMETER AP==============================
+# ============================================ DATASETS =====================================
+@application.route('/datasets/<page>', methods=['GET'])
+@token_required
+def get_all_dataset(current_user, page):
+    response = {
+        "success": False,
+        "message": "Invalid parameters"
+    }
+    if not current_user['admin']:
+        response["success"] = False
+        response["message"] = 'You are not allowed to Get All Datasets!'
+        return response, 403
+    
+
+    try:
+        per_page = 5
+        results = []
+        datasets = db["datasets"].find({'name': 'nasa93'}).skip((int(page)-1)*per_page).limit(per_page)
+        datasetsCount = db["datasets"].count_documents({'name': 'nasa93'})
+
+        for dataset in datasets:
+            dataset["_id"] = str(dataset["_id"])
+            results.append(dataset)
+        
+        response["success"] = True
+        response["message"] = 'Get All Datasets'
+        response["data"] = results
+        response["max_page"] = int(np.ceil(datasetsCount / per_page))
+        return response, 200
+    except Exception as ex:
+        print(str(ex))
+        return response, 500
+# ============================================ END DATASETS API =============================
 @application.route('/estimation', methods=['POST'])
 def estimation():
     response = {
@@ -551,6 +587,39 @@ def estimation():
     }
     response["success"] = True
     response["message"] = 'Estimation Success'
+    response["data"] = result
+    return response, 200
+
+# ====================================================Estimation Parameter Success======================
+@application.route('/estimation-parameter', methods=['POST'])
+def estimation_parameter():
+    response = {
+        "success": False,
+        "message": "Invalid parameters"
+    }
+    data = request.form
+    n_population, max_iteration, algorithm = int(data.get('n_population')), int(data.get('max_iteration')), data.get('algorithm')
+
+    if n_population == None or max_iteration == None or algorithm == None:
+        return response, 400
+
+    if algorithm == "bat":
+        param, mmre = algoKelelawar(n_population, 4, max_iteration)
+    if algorithm == "fpa":
+        param, mmre= fpaAlgorithm(n_population, 4, max_iteration)
+    if algorithm == "hybrid":
+        param, mmre= baFpa(n_population, 4, max_iteration)
+
+    mmre_tdev = mmre[0]
+    mmre_effort = mmre[1]
+
+    result = {
+        "parameter": param.tolist(),
+        "mmre_tdev": mmre_tdev,
+        "mmre_effort": mmre_effort,
+    }
+    response["success"] = True
+    response["message"] = 'Estimation Parameter Success'
     response["data"] = result
     return response, 200
 
