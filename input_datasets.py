@@ -25,4 +25,5 @@ def pagination(page):
     
     print(results[0])
 
-pagination(2)
+# pagination(2)
+insert()

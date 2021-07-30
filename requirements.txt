@@ -1,5 +1,6 @@
 click==8.0.1
 colorama==0.4.4
+dnspython==2.1.0
 Flask==2.0.1
 Flask-Cors==3.0.10
 itsdangerous==2.0.1
