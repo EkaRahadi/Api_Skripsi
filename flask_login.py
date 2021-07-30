@@ -395,7 +395,7 @@ def update_parameter(current_user, parameter_id):
             'param_b': float(param_b),
             'param_c': float(param_c),
             'param_d': float(param_d),
-            'default': default
+            'default': bool(default)
         }
 
 
