@@ -386,6 +386,10 @@ def update_parameter(current_user, parameter_id):
         data = request.form
         param_a, param_b, param_c, param_d= data.get('param_a'), data.get('param_b'), data.get('param_c'), data.get('param_d')
         default = data.get('default')
+        if default == 'false':
+            default = False
+        if default == 'true':
+            default = True
 
         if param_a == None or param_b == None or param_c == None or param_d == None or default == None:
             return response, 202
