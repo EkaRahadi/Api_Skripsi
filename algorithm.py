@@ -11,10 +11,11 @@ db = conn[config.MONGO_AUTH]
 def simple(s, lb, ub, d):
     ns_tmp = s
     for i in range(0, d):
-        if ns_tmp[i] < lb:
-            ns_tmp[i] = lb
-        if ns_tmp[i] > ub:
-            ns_tmp[i] = ub
+        ns_tmp[i] = abs(ns_tmp[i])
+        # if ns_tmp[i] < lb:
+        #     ns_tmp[i] = lb
+        # if ns_tmp[i] > ub:
+        #     ns_tmp[i] = ub
     return ns_tmp
 
 def levy(d):
